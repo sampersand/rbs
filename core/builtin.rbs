@@ -75,6 +75,8 @@ type real = Integer | Float | Rational
 
 type string = String | _ToStr
 type encoding = Encoding | string
+type array[T] = Array[T] | _ToAry[T]
+type hash[T] = Hash[T] | _ToHash[T]
 
 type io = IO | _ToIO
 
