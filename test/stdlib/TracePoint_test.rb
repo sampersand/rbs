@@ -1,5 +1,45 @@
-require_relative "test_helper"
+require_relative 'test_helper'
 
+class TracePointSingletonTest < Test::Unit::TestCase
+  include TypeAssertions
+
+  testing 'singleton(::TracePoint)'
+
+  KNOWN_EVENTS = %i[
+    line class end call return c_call c_return raise b_call b_return a_call a_return thread_begin
+    thread_end fiber_switch script_compiled rescue
+  ]
+
+  def with_events
+    KNOWN_EVENTS.each do |event|
+      yield event
+      yield ToSym.new(event)
+    end
+  end
+
+  def test_new
+    with_events do |event|
+      assert_send_type '(*TracePoint::trace_event | _ToSym) { (self) -> void } -> self',
+                       TracePoint, :new, event, event do end
+    end
+  end
+
+  # TODO
+  # def test_allow_reentry
+  #   assert_send_type  "() { () -> void } -> void",
+  #                     TracePoint, :allow_reentry
+  # end
+
+  def test_stat
+    assert_send_type  "() -> untyped",
+                      TracePoint, :stat
+  end
+
+  def test_trace
+    assert_send_type  "(*::Symbol events) { (::TracePoint tp) -> void } -> ::TracePoint",
+                      TracePoint, :trace, :line do |tp| tp.disable end
+  end
+__END__
 class TracePointSingletonTest < Test::Unit::TestCase
   include TypeAssertions
 
