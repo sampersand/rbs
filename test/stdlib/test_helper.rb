@@ -179,11 +179,20 @@ module WithAliases
       self.and(nil, &block)
     end
 
+    def but(*cases)
+      return WithEnum.new to_enum(__method__, *args) unless block_given?
+
+      each do |arg|
+        yield arg unless cases.any? { _1 === arg }
+      end
+    end
+
     def and(*args, &block)
-      return WithEnum.new to_enum(__method__, args) unless block_given?
+      return WithEnum.new to_enum(__method__, *args) unless block_given?
+
       each(&block)
       args.each do |arg|
-        if WithEnum === arg
+        if WithEnum === arg # use `===` as `arg` might not have `.is_a?` on it
           arg.each(&block)
         else
           block.call(arg)
@@ -265,6 +274,7 @@ module WithAliases
 
   alias with_untyped with_boolish
 end
+
 module TypeAssertions
   module ClassMethods
     attr_reader :target
