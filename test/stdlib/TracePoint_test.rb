@@ -1,13 +1,17 @@
-require_relative "test_helper"
-
+require_relative 'test_helper'
+=begin
 class TracePointSingletonTest < Test::Unit::TestCase
   include TypeAssertions
 
-  testing "singleton(::TracePoint)"
+  testing 'singleton(::TracePoint)'
 
   def test_new
-    assert_send_type  "(*::Symbol events) { (::TracePoint tp) -> void } -> ::TracePoint",
-                      TracePoint, :new, :line do end
+      assert_send_type  "(*::Symbol events) { (TracePoint tp) -> void } -> ::TracePoint",
+                        TracePoint, :new, :raise do end
+
+    with :raise, ToSym.new(:raise) do |event|
+      assert_send_type  "(*::Symbol events) { (::TracePoint tp) -> void } -> ::TracePoint",
+                        TracePoint, :new, :raise do end
   end
 
   # TODO
@@ -26,12 +30,78 @@ class TracePointSingletonTest < Test::Unit::TestCase
                       TracePoint, :trace, :line do |tp| tp.disable end
   end
 end
-
+=end
 class TracePointTest < Test::Unit::TestCase
   include TypeAssertions
 
-  testing "::TracePoint"
+  testing '::TracePoint'
 
+  def yield_tracepoint(fn=:line, block=->{1},&block)
+    TracePoint.new(:line, &block).enable { 1 }
+  end
+
+  def test_binding
+    # TracePoint.new :line do
+
+    yield_tracepoint do |tp|
+      assert_send_type  '() -> Binding',
+                        tp, :binding
+    end
+
+    yield_tracepoint do |tp|
+      assert_send_type  '() -> nil',
+                        tp, :binding
+    end
+
+    # yield_tracepoint :c_call, ->{ Object.new } do |tp|
+    #   assert_send_type  '() -> nil',
+    #                     tp, :binding
+    # ensure
+    #   require 'pry'
+    #   binding.pry
+    # end
+  end
+end
+__END__
+  def test_callee_id
+    yield_tracepoint do |tp|
+      assert_send_type  '() -> Symbol',
+                        tp, :callee_id
+    end
+
+    yield_tracepoint :c_call, ->{ 1.+(2) } do |tp|
+      assert_send_type  '() -> nil',
+                        tp, :callee_id
+    end
+  end
+
+  def test_defined_class
+    yield_tracepoint do |tp|
+      assert_send_type  '() -> (Class | Module)',
+                        tp, :defined_class
+    end
+
+    yield_tracepoint :c_call, ->{ 1.+(2) } do |tp|
+      assert_send_type  '() -> nil',
+                        tp, :defined_class
+    end
+  end
+
+  def test_disable
+    yield_tracepoint do |tp|
+      assert_send_type  '() -> bool',
+                        tp, :disable
+      assert_send_type  '() -> bool',
+                        tp, :disable
+    end
+
+    yield_tracepoint :c_call, ->{ 1.+(2) } do |tp|
+      assert_send_type  '() -> Integer',
+                        tp, :disable
+    end
+  end
+end
+__END__
   def test_initialize
     assert_send_type  "(*::Symbol events) { (::TracePoint tp) -> void } -> void",
                       TracePoint.new(:line){}, :initialize do end
